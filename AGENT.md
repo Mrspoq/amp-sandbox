@@ -1,34 +1,40 @@
 # AGENT.md
 
-This file captures conventions for working on this project with Amp, using GitHub CLI as the default interface.
+Project: void-filter (primary). This file captures conventions for working with Amp using GitHub CLI as the default interface.
 
-## Defaults
-- Use GitHub CLI (`gh`) for repo operations instead of raw `git` when possible.
-- Git operations protocol: HTTPS (per `gh auth status`).
+## Operating rules
+- Prefer GitHub CLI (`gh`) over raw `git` for GitHub operations.
+- Do not “try multiple variants until one works.” Plan and run a single validated command. Use `--help` and `gh auth status` to confirm assumptions before executing.
+- If a local Git action fails (e.g., `git commit` environment edge cases), use `gh api` to create/update files instead of retrying different flags.
+- Protocol: HTTPS (per `gh auth status`).
+- Scope: Only operate on the `void-filter` project unless explicitly asked otherwise. Avoid cloning unrelated repos.
+
+## Frequently used checks
+- Auth status: `gh auth status -h github.com`
+- Current user: `gh api user --jq '{login: .login, name: .name}'`
+- Primary email: `gh api user/emails --jq 'map(select(.primary == true))[0].email'`
+- Repo existence: `gh repo view <owner>/<repo> --json name -q .name`
+
+## Repository lifecycle (void-filter)
+- Create: `gh repo create <owner>/void-filter --public --description "Void Filter project" --add-readme`
+- Clone (only when necessary): `gh repo clone <owner>/void-filter`
+- View: `gh repo view <owner>/void-filter --web`
+
+## Deterministic content updates (preferred)
+- Get file SHA: `gh api repos/<owner>/void-filter/contents/<path> --jq .sha`
+- Create/update: `gh api -X PUT repos/<owner>/void-filter/contents/<path> -f message='msg' -f content='BASE64' -f branch=main` (include `-f sha='<SHA>'` when updating)
+
+## Local workflow (when using a clone)
+- Branch: `git checkout -b <branch>`
+- Stage/commit: `git add -A && git commit -m "<message>"`
+- Push + PR: `git push -u origin <branch> && gh pr create -t "<title>" -b "<body>" -B main -H <branch>`
+
+## Conventions
 - Default branch: `main`.
-
-## Frequently used commands
-- Show auth: `gh auth status -h github.com`
-- Set default git protocol to HTTPS: `gh config set git_protocol https`
-- Create repo (already done): `gh repo create Mrspoq/amp-sandbox --public --add-readme`
-- Clone: `gh repo clone Mrspoq/amp-sandbox`
-- View in browser: `gh repo view --web`
-- Create issue: `gh issue create -t "Title" -b "Body"`
-- Create PR: `gh pr create -t "Title" -b "Body" -B main -H <branch>`
-
-## Local workflow
-- Create a branch: `git checkout -b <branch>`
-- Commit: `git add -A && git commit -m "<message>"`
-- Push and open PR: `git push -u origin <branch> && gh pr create -t "<title>" -b "<body>" -B main -H <branch>`
-
-## Repo setup checklist (use `gh`)
-- Branch protections (manual or via API):
-  - Require PR reviews on `main`.
-  - Require status checks to pass.
-- CODEOWNERS: add `.github/CODEOWNERS` as needed.
-- Templates: add `.github/ISSUE_TEMPLATE/` and `.github/pull_request_template.md`.
-- CI: add `.github/workflows/ci.yaml` if needed.
+- Commit messages: conventional commits (e.g., `chore: update config`).
+- No speculative retries; run single, correct commands.
 
 ## Notes
-- Author configured: `user.name = Mrspoq`, `user.email = abbaceo@gmail.com`.
-- Adjust in Git with `git config --global user.name "<name>"` and `git config --global user.email "<email>"`.
+- `user.name = Mrspoq`, `user.email = abbaceo@gmail.com` (configured).
+- If `git commit` returns unexpected errors, switch to `gh api` for the change.
+
